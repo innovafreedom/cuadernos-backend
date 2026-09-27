@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuadernos — panel del equipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#17181A; --ink:#EDE8DB; --teal:#5FA893; --line:#33342E; --danger:#C0483C; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; font-size:14px; }
+  h1,h2,h3{ font-family:'Fraunces',Georgia,serif; margin:0; }
+  .wrap{ max-width:900px; margin:0 auto; padding:24px 20px 60px; }
+  header{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:16px; }
+  header h1{ font-size:26px; }
+  header p{ color:var(--teal); font-size:12px; margin:4px 0 0; }
+  #login{ max-width:320px; margin:80px auto; }
+  #login input{ width:100%; padding:10px; margin-bottom:10px; background:none; border:1px solid var(--line); color:var(--ink); border-radius:2px; }
+  #login button{ width:100%; padding:10px; background:var(--teal); border:none; color:#0E0F10; font-weight:600; border-radius:2px; cursor:pointer; }
+  .err{ color:var(--danger); font-size:12px; margin-top:6px; }
+  .blog{ border:1px solid var(--line); border-radius:3px; padding:16px 18px; margin-bottom:16px; }
+  .blog-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .blog-top h2{ font-size:19px; }
+  .blog-top .meta{ font-size:12px; color:#8f8f88; margin-top:4px; }
+  .blog-top button{ background:none; border:1px solid var(--danger); color:var(--danger); padding:5px 10px; border-radius:2px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .post{ border-top:1px solid var(--line); padding:12px 0; }
+  .post-top{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .post h3{ font-size:15px; }
+  .post p{ white-space:pre-wrap; font-size:13px; color:#cfcbbc; margin:6px 0; }
+  .post video{ max-width:360px; width:100%; border-radius:2px; background:#000; margin-top:6px; }
+  .post button{ background:none; border:1px solid var(--danger); color:var(--danger); padding:4px 9px; border-radius:2px; font-size:11px; cursor:pointer; white-space:nowrap; }
+  .empty{ color:#8f8f88; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1 style="margin-bottom:16px;">Panel del equipo</h1>
+  <input type="password" id="adminPass" placeholder="Contraseña del equipo">
+  <button id="btnLogin">Entrar</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <header>
+    <div><h1>Todos los blogs</h1><p>vista del equipo — visible solo con la contraseña de administración</p></div>
+  </header>
+  <div id="blogs"><p class="empty">Cargando…</p></div>
+</div>
+
+<script>
+let token = sessionStorage.getItem('cuadernos_admin_token') || null;
+
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function tryLoad(){
+  if(!token) return;
+  const res = await fetch('/api/admin/overview', { headers:{ 'x-admin-token': token } });
+  if(!res.ok){ token = null; sessionStorage.removeItem('cuadernos_admin_token'); return; }
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const blogs = await res.json();
+  render(blogs);
+}
+
+function render(blogs){
+  const wrap = document.getElementById('blogs');
+  if(!blogs.length){ wrap.innerHTML = '<p class="empty">Todavía no hay blogs.</p>'; return; }
+  wrap.innerHTML = '';
+  blogs.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'blog';
+    div.innerHTML = `
+      <div class="blog-top">
+        <div><h2>${esc(b.title)}</h2><p class="meta">por ${esc(b.author)} · ${b.posts.length} entrada(s)</p></div>
+        <button data-blog="${b.id}" class="delBlog">Eliminar blog</button>
+      </div>
+      <div class="posts"></div>
+    `;
+    const postsDiv = div.querySelector('.posts');
+    if(!b.posts.length){ postsDiv.innerHTML = '<p class="empty" style="margin-top:8px;">Sin entradas.</p>'; }
+    b.posts.forEach(p => {
+      const pd = document.createElement('div');
+      pd.className = 'post';
+      pd.innerHTML = `
+        <div class="post-top">
+          <h3>${esc(p.title)}</h3>
+          <button data-post="${p.id}" class="delPost">Eliminar</button>
+        </div>
+        <p>${esc(p.text)}</p>
+        ${p.videoUrl ? `<video controls src="${p.videoUrl}"></video>` : ''}
+      `;
+      postsDiv.appendChild(pd);
+    });
+    wrap.appendChild(div);
+  });
+
+  wrap.querySelectorAll('.delBlog').forEach(btn => btn.onclick = async () => {
+    if(!confirm('¿Eliminar este blog y todas sus entradas?')) return;
+    await fetch('/api/admin/blogs/' + btn.dataset.blog, { method:'DELETE', headers:{ 'x-admin-token': token } });
+    tryLoad();
+  });
+  wrap.querySelectorAll('.delPost').forEach(btn => btn.onclick = async () => {
+    if(!confirm('¿Eliminar esta entrada?')) return;
+    await fetch('/api/admin/posts/' + btn.dataset.post, { method:'DELETE', headers:{ 'x-admin-token': token } });
+    tryLoad();
+  });
+}
+
+document.getElementById('btnLogin').onclick = async () => {
+  const password = document.getElementById('adminPass').value;
+  const res = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password }) });
+  const data = await res.json();
+  if(!res.ok){ document.getElementById('loginErr').textContent = data.error; return; }
+  token = data.token;
+  sessionStorage.setItem('cuadernos_admin_token', token);
+  tryLoad();
+};
+
+tryLoad();
+</script>
+</body>
+</html>
