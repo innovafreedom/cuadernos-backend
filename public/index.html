@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cuadernos — blogs personales</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://googleapis.com">
+<link href="https://googleapis.com/css2?family=Fraunces:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{ --paper:#F7F2E7; --ink:#1B1B1F; --teal:#2F6E62; --line:#D8D0BE; }
   *{box-sizing:border-box}
@@ -39,7 +39,7 @@
   article.post{ padding:20px 0; border-bottom:1px solid var(--line); }
   article.post h3{ font-size:19px; margin-bottom:6px; }
   article.post p{ white-space:pre-wrap; margin:0 0 10px; }
-  article.post video{ width:100%; max-width:520px; border-radius:2px; background:#000; }
+  article.post video{ width:100%; max-width:520px; border-radius:2px; background:#000; display:block; margin-top:12px; }
   dialog{ border:none; border-radius:3px; padding:0; max-width:460px; width:92vw; background:var(--paper); color:var(--ink); }
   dialog::backdrop{ background:rgba(0,0,0,.4); }
   .dlg{ padding:24px; }
@@ -99,7 +99,8 @@
     <h2>Nueva entrada</h2>
     <div class="field"><label>Título</label><input id="pTitle"></div>
     <div class="field"><label>Texto</label><textarea id="pText"></textarea></div>
-    <div class="field"><label>Video (opcional)</label><input type="file" id="pVideo" accept="video/*"></div>
+    <div class="field"><label>Video local (opcional)</label><input type="file" id="pVideo" accept="video/*"></div>
+    <div class="field"><label>O pegar enlace de YouTube (opcional)</label><input type="text" id="pYtUrl" placeholder="https://youtube.com..."></div>
     <div class="field"><label>Contraseña del blog</label><input type="password" id="pPassword"></div>
     <div class="err" id="pErr"></div>
     <div class="dlg-row"><button id="pCancel">Cancelar</button><button class="primary" id="pCreate">Publicar</button></div>
@@ -160,45 +161,56 @@ document.getElementById('btnNewBlog').onclick = () => {
 };
 document.getElementById('fCancel').onclick = () => dlgBlog.close();
 document.getElementById('fCreate').onclick = async () => {
-  const body = {
-    title: document.getElementById('fTitle').value.trim(),
-    author: document.getElementById('fAuthor').value.trim(),
-    tagline: document.getElementById('fTagline').value.trim(),
-    color: document.getElementById('fColor').value,
-    password: document.getElementById('fPassword').value
-  };
-  const res = await fetch('/api/blogs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  const data = await res.json();
-  if(!res.ok){ document.getElementById('fErr').textContent = data.error; return; }
+  const title = document.getElementById('fTitle').value;
+  const author = document.getElementById('fAuthor').value;
+  const tagline = document.getElementById('fTagline').value;
+  const color = document.getElementById('fColor').value;
+  const password = document.getElementById('fPassword').value;
+  const err = document.getElementById('fErr');
+  err.textContent = '';
+
+  if(!title || !author || !password){ err.textContent = 'Faltan campos obligatorios'; return; }
+
+  const res = await fetch('/api/blogs', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ title, author, tagline, color, password })
+  });
+
+  if(!res.ok){ const e = await res.json(); err.textContent = e.error || 'Error al crear'; return; }
   dlgBlog.close();
-  currentId = data.id;
-  await loadBlogs();
-  await loadReader();
+  loadBlogs();
 };
 
 const dlgPost = document.getElementById('dlgPost');
 function openPostDialog(){
-  ['pTitle','pText','pPassword'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('pVideo').value = '';
+  ['pTitle','pText','pVideo','pYtUrl','pPassword'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('pErr').textContent = '';
   dlgPost.showModal();
 }
 document.getElementById('pCancel').onclick = () => dlgPost.close();
 document.getElementById('pCreate').onclick = async () => {
-  const fd = new FormData();
-  fd.append('title', document.getElementById('pTitle').value.trim());
-  fd.append('text', document.getElementById('pText').value.trim());
-  fd.append('password', document.getElementById('pPassword').value);
-  const file = document.getElementById('pVideo').files[0];
-  if(file) fd.append('video', file);
-  const res = await fetch(`/api/blogs/${currentId}/posts`, { method:'POST', body: fd });
-  const data = await res.json();
-  if(!res.ok){ document.getElementById('pErr').textContent = data.error; return; }
-  dlgPost.close();
-  await loadReader();
-};
+  const title = document.getElementById('pTitle').value;
+  const text = document.getElementById('pText').value;
+  const videoFile = document.getElementById('pVideo').files;
+  const ytUrl = document.getElementById('pYtUrl').value;
+  const password = document.getElementById('pPassword').value;
+  const err = document.getElementById('pErr');
+  err.textContent = '';
 
+if(!title || !password){ err.textContent = 'Título y contraseña obligatorios'; return; }
+const formData = new FormData();
+formData.append('title', title);
+formData.append('text', text);
+formData.append('password', password);
+if(videoFile.length > 0) formData.append('video', videoFile[0]);
+if(ytUrl) formData.append('ytUrl', ytUrl);
+const res = await fetch(/api/blogs/${currentId}/posts, {
+method: 'POST',
+body: formData
+});
+if(!res.ok){ const e = await res.json(); err.textContent = e.error || 'Error al publicar'; return; }
+dlgPost.close();
+loadReader();
+};
 loadBlogs();
-</script>
-</body>
-</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cuadernos — blogs personales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#F7F2E7; --ink:#1B1B1F; --teal:#2F6E62; --line:#D8D0BE; }
+  *{box-sizing:border-box}
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; font-size:15px; line-height:1.5; }
+  h1,h2,h3{ font-family:'Fraunces',Georgia,serif; margin:0; }
+  .wrap{ max-width:1040px; margin:0 auto; padding:0 20px; }
+  header{ border-bottom:1px solid var(--line); padding:28px 0 20px; }
+  header .wrap{ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; }
+  header h1{ font-size:32px; font-weight:600; }
+  header p{ margin:4px 0 0; color:var(--teal); font-size:13px; }
+  button{ font-family:'Inter'; cursor:pointer; }
+  .btn-dark{ background:var(--ink); color:var(--paper); border:none; padding:10px 16px; border-radius:2px; font-weight:600; font-size:13px; }
+  .btn-dark:hover{ background:var(--teal); }
+  main{ display:grid; grid-template-columns:230px 1fr; gap:36px; padding:28px 0 60px; }
+  main.wrap{}
+  @media (max-width:760px){ main.wrap{ grid-template-columns:1fr; } }
+  nav{ border-right:1px solid var(--line); padding-right:24px; }
+  @media (max-width:760px){ nav{ border-right:none; border-bottom:1px solid var(--line); padding:0 0 20px; } }
+  nav h2{ font-size:12px; font-family:'Inter'; font-weight:600; color:var(--teal); margin-bottom:12px; }
+  .blog-item{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 0; border-bottom:1px solid var(--line); color:var(--ink); }
+  .blog-item .name{ font-family:'Fraunces'; font-size:16px; display:block; }
+  .blog-item .by{ font-size:12px; color:#8A8578; }
+  .empty{ color:#8A8578; font-size:13px; }
+  .placeholder{ padding:60px 0; color:#8A8578; }
+  .blog-head{ border-bottom:3px solid var(--accent,var(--teal)); padding-bottom:16px; margin-bottom:24px; }
+  .blog-head h2{ font-size:28px; }
+  .blog-head .tagline{ font-style:italic; color:#8A8578; margin:4px 0; }
+  .blog-head .meta{ font-size:12px; color:#8A8578; }
+  .blog-actions{ margin-top:12px; }
+  .blog-actions button{ background:none; border:1px solid var(--line); padding:6px 12px; border-radius:2px; font-size:12px; }
+  article.post{ padding:20px 0; border-bottom:1px solid var(--line); }
+  article.post h3{ font-size:19px; margin-bottom:6px; }
+  article.post p{ white-space:pre-wrap; margin:0 0 10px; }
+  article.post video{ width:100%; max-width:520px; border-radius:2px; background:#000; }
+  dialog{ border:none; border-radius:3px; padding:0; max-width:460px; width:92vw; background:var(--paper); color:var(--ink); }
+  dialog::backdrop{ background:rgba(0,0,0,.4); }
+  .dlg{ padding:24px; }
+  .dlg h2{ font-size:20px; margin-bottom:16px; }
+  .field{ margin-bottom:13px; }
+  .field label{ display:block; font-size:12px; font-weight:600; margin-bottom:5px; }
+  .field input,.field textarea{ width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:2px; background:transparent; color:var(--ink); font-family:'Inter'; font-size:14px; }
+  .field textarea{ min-height:100px; resize:vertical; }
+  .field small{ display:block; color:#8A8578; font-size:11px; margin-top:4px; }
+  .err{ color:#B3453A; font-size:12px; margin-top:6px; }
+  .dlg-row{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+  .dlg-row button{ padding:8px 16px; border-radius:2px; border:1px solid var(--line); background:none; color:var(--ink); font-size:13px; }
+  .dlg-row button.primary{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div>
+      <h1>Cuadernos</h1>
+      <p>cada quien diseña el suyo</p>
+    </div>
+    <button class="btn-dark" id="btnNewBlog">+ Nuevo blog</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav>
+    <h2>Blogs</h2>
+    <div id="blogList"><p class="empty">Cargando…</p></div>
+  </nav>
+  <section id="reader">
+    <div class="placeholder"><h2>Ningún blog seleccionado</h2><p>Elige uno de la lista o crea el primero.</p></div>
+  </section>
+</main>
+
+<dialog id="dlgBlog">
+  <div class="dlg">
+    <h2>Nuevo blog</h2>
+    <div class="field"><label>Título del blog</label><input id="fTitle"></div>
+    <div class="field"><label>Tu nombre</label><input id="fAuthor"></div>
+    <div class="field"><label>Frase corta (opcional)</label><input id="fTagline"></div>
+    <div class="field"><label>Color de acento</label><input type="color" id="fColor" value="#2F6E62" style="width:44px;height:30px;padding:2px;"></div>
+    <div class="field">
+      <label>Contraseña (la necesitarás para publicar entradas)</label>
+      <input type="password" id="fPassword">
+      <small>Mínimo 4 caracteres. Guárdala, no se puede recuperar.</small>
+    </div>
+    <div class="err" id="fErr"></div>
+    <div class="dlg-row"><button id="fCancel">Cancelar</button><button class="primary" id="fCreate">Crear blog</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlgPost">
+  <div class="dlg">
+    <h2>Nueva entrada</h2>
+    <div class="field"><label>Título</label><input id="pTitle"></div>
+    <div class="field"><label>Texto</label><textarea id="pText"></textarea></div>
+    <div class="field"><label>Video (opcional)</label><input type="file" id="pVideo" accept="video/*"></div>
+    <div class="field"><label>Contraseña del blog</label><input type="password" id="pPassword"></div>
+    <div class="err" id="pErr"></div>
+    <div class="dlg-row"><button id="pCancel">Cancelar</button><button class="primary" id="pCreate">Publicar</button></div>
+  </div>
+</dialog>
+
+<script>
+let currentId = null;
+
+async function loadBlogs(){
+  const res = await fetch('/api/blogs');
+  const blogs = await res.json();
+  const list = document.getElementById('blogList');
+  if(!blogs.length){ list.innerHTML = '<p class="empty">Todavía no hay ninguno.</p>'; return; }
+  list.innerHTML = '';
+  blogs.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'blog-item';
+    btn.innerHTML = `<span class="name">${esc(b.title)}</span><span class="by">${esc(b.author)}</span>`;
+    btn.onclick = () => { currentId = b.id; loadReader(); };
+    list.appendChild(btn);
+  });
+}
+
+async function loadReader(){
+  const reader = document.getElementById('reader');
+  const res = await fetch('/api/blogs/' + currentId);
+  if(!res.ok){ reader.innerHTML = '<p>No se pudo cargar el blog.</p>'; return; }
+  const blog = await res.json();
+  reader.innerHTML = `
+    <div class="blog-head" style="--accent:${blog.color}">
+      <h2>${esc(blog.title)}</h2>
+      ${blog.tagline ? `<p class="tagline">${esc(blog.tagline)}</p>` : ''}
+      <p class="meta">por ${esc(blog.author)} · ${blog.posts.length} entrada(s)</p>
+      <div class="blog-actions"><button id="btnAddPost">+ Nueva entrada</button></div>
+    </div>
+    <div id="postsWrap"></div>
+  `;
+  document.getElementById('btnAddPost').onclick = () => openPostDialog();
+  const wrap = document.getElementById('postsWrap');
+  if(!blog.posts.length){ wrap.innerHTML = '<p class="empty">Sin entradas todavía.</p>'; return; }
+  blog.posts.forEach(p => {
+    const art = document.createElement('article');
+    art.className = 'post';
+    art.innerHTML = `<h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>` +
+      (p.videoUrl ? `<video controls src="${p.videoUrl}"></video>` : '');
+    wrap.appendChild(art);
+  });
+}
+
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const dlgBlog = document.getElementById('dlgBlog');
+document.getElementById('btnNewBlog').onclick = () => {
+  ['fTitle','fAuthor','fTagline','fPassword'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fErr').textContent = '';
+  dlgBlog.showModal();
+};
+document.getElementById('fCancel').onclick = () => dlgBlog.close();
+document.getElementById('fCreate').onclick = async () => {
+  const body = {
+    title: document.getElementById('fTitle').value.trim(),
+    author: document.getElementById('fAuthor').value.trim(),
+    tagline: document.getElementById('fTagline').value.trim(),
+    color: document.getElementById('fColor').value,
+    password: document.getElementById('fPassword').value
+  };
+  const res = await fetch('/api/blogs', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if(!res.ok){ document.getElementById('fErr').textContent = data.error; return; }
+  dlgBlog.close();
+  currentId = data.id;
+  await loadBlogs();
+  await loadReader();
+};
+
+const dlgPost = document.getElementById('dlgPost');
+function openPostDialog(){
+  ['pTitle','pText','pPassword'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('pVideo').value = '';
+  document.getElementById('pErr').textContent = '';
+  dlgPost.showModal();
+}
+document.getElementById('pCancel').onclick = () => dlgPost.close();
+document.getElementById('pCreate').onclick = async () => {
+  const fd = new FormData();
+  fd.append('title', document.getElementById('pTitle').value.trim());
+  fd.append('text', document.getElementById('pText').value.trim());
+  fd.append('password', document.getElementById('pPassword').value);
+  const file = document.getElementById('pVideo').files[0];
+  if(file) fd.append('video', file);
+  const res = await fetch(`/api/blogs/${currentId}/posts`, { method:'POST', body: fd });
+  const data = await res.json();
+  if(!res.ok){ document.getElementById('pErr').textContent = data.error; return; }
+  dlgPost.close();
+  await loadReader();
+};
+
+loadBlogs();
+</script>
+</body>
+</html>
