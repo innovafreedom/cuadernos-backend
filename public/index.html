@@ -111,18 +111,22 @@
 let currentId = null;
 
 async function loadBlogs(){
-  const res = await fetch('/api/blogs');
-  const blogs = await res.json();
-  const list = document.getElementById('blogList');
-  if(!blogs.length){ list.innerHTML = '<p class="empty">Todavía no hay ninguno.</p>'; return; }
-  list.innerHTML = '';
-  blogs.forEach(b => {
-    const btn = document.createElement('button');
-    btn.className = 'blog-item';
-    btn.innerHTML = `<span class="name">${esc(b.title)}</span><span class="by">${esc(b.author)}</span>`;
-    btn.onclick = () => { currentId = b.id; loadReader(); };
-    list.appendChild(btn);
-  });
+  try {
+    const res = await fetch('/api/blogs');
+    const blogs = await res.json();
+    const list = document.getElementById('blogList');
+    if(!blogs.length){ list.innerHTML = '<p class="empty">Todavía no hay ninguno.</p>'; return; }
+    list.innerHTML = '';
+    blogs.forEach(b => {
+      const btn = document.createElement('button');
+      btn.className = 'blog-item';
+      btn.innerHTML = `<span class="name">${esc(b.title)}</span><span class="by">${esc(b.author)}</span>`;
+      btn.onclick = () => { currentId = b.id; loadReader(); };
+      list.appendChild(btn);
+    });
+  } catch(e) {
+    document.getElementById('blogList').innerHTML = '<p class="empty">Error al cargar blogs.</p>';
+  }
 }
 
 async function loadReader(){
@@ -194,10 +198,9 @@ document.getElementById('pCreate').onclick = async () => {
   const text = document.getElementById('pText').value;
   const videoFile = document.getElementById('pVideo').files;
   const ytUrl = document.getElementById('pYtUrl').value;
-  const password = document.getElementById('pPassword').value;
-  const err = document.getElementById('pErr');
-  err.textContent = '';
-
+const password = document.getElementById('pPassword').value;
+const err = document.getElementById('pErr');
+err.textContent = '';
 if(!title || !password){ err.textContent = 'Título y contraseña obligatorios'; return; }
 const formData = new FormData();
 formData.append('title', title);
